@@ -200,6 +200,43 @@ src/
 - Implement WCAG AA accessibility standards
 - Use TypeScript for type safety and better DX
 
+## Planning Document Strategy
+
+### Planning Document Location
+All planning documents are stored in `.claude/planning/` directory for better organization and integration with Claude Code workflows.
+
+### Document Organization Structure
+```
+.claude/
+└── planning/
+    ├── initial-planning/              # Pre-git planning documents
+    │   ├── 2025-07-02-app-requirements.md
+    │   ├── 2025-07-02-implementation-plan.md
+    │   ├── 2025-07-02-ui-feedback-session.md
+    │   └── 2025-07-02-ui-improvements-plan.md
+    ├── [branch-name]/                 # Branch-specific planning
+    │   └── YYYY-MM-DD-[meaningful-description].md
+    └── main/                          # Main branch planning
+        └── YYYY-MM-DD-[meaningful-description].md
+```
+
+### Naming Convention
+Planning documents should follow this format:
+- **Date**: `YYYY-MM-DD` (ISO format for proper sorting)
+- **Description**: Short, meaningful description of the planning session
+- **Example**: `2025-07-02-database-integration-plan.md`
+
+### Guidelines for Future Agents
+When creating planning documents:
+1. Always place them in `.claude/planning/[current-branch]/`
+2. Use the current date and a meaningful description
+3. Keep descriptions concise but descriptive (3-5 words)
+4. Focus on what the plan addresses, not generic terms
+5. Examples of good names:
+   - `2025-07-03-auth-implementation-plan.md`
+   - `2025-07-03-mobile-responsive-fixes.md`
+   - `2025-07-03-performance-optimization-strategy.md`
+
 ## Common Commands Reference
 ```bash
 # Quick development cycle
