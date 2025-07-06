@@ -20,7 +20,13 @@ This file provides guidance to Claude Code when working on the Availably group s
 
 ### Running the Application
 ```bash
-# Start development server (always use this to test changes)
+# RECOMMENDED: Check if dev server is already running (prevents conflicts)
+./scripts/check-dev-server.sh
+
+# RECOMMENDED: Start development server safely (auto-detects conflicts)
+./scripts/start-dev-server.sh
+
+# ALTERNATIVE: Start development server directly (now reliable with node command)
 npm run dev
 # Opens at http://localhost:5173/
 
@@ -34,15 +40,28 @@ npm run preview
 npm run lint
 ```
 
+### Development Server Management
+**IMPORTANT**: The development server runs in the foreground and will cause `npm run dev` to timeout in tool environments. Use these helper scripts to avoid conflicts:
+
+- `./scripts/check-dev-server.sh` - Check if server is running/stuck
+- `./scripts/start-dev-server.sh` - Start server safely (auto-detects conflicts)
+
+**Claude Commands**: These are also available as documented commands:
+- See `.claude/commands/check-dev-server.md` for detailed usage
+- See `.claude/commands/start-dev-server.md` for detailed usage
+
+**For Agents**: Always use `./scripts/check-dev-server.sh` before attempting to start the server to prevent timeout issues. Note: npm run dev now uses the reliable node command internally.
+
 ### Testing Workflow
 Always test changes using these steps:
-1. Run `npm run dev` to start development server
-2. Navigate to `/event/sample` to test timeline component
-3. Test responsive design by resizing browser window (320px, 375px, 768px)
-4. Test mobile touch interactions (drag selection, real-time feedback)
-5. Test accessibility features (colorblind patterns, screen reader)
-6. Check browser console for any errors
-7. Verify TypeScript compilation with `npm run build`
+1. Run `./scripts/check-dev-server.sh` to verify server status
+2. If server not running, start with `./scripts/start-dev-server.sh`
+3. Navigate to `/event/sample` to test timeline component
+4. Test responsive design by resizing browser window (320px, 375px, 768px)
+5. Test mobile touch interactions (drag selection, real-time feedback)
+6. Test accessibility features (colorblind patterns, screen reader)
+7. Check browser console for any errors
+8. Verify TypeScript compilation with `npm run build`
 
 ### Agent-Based Development Approach
 This project successfully uses multi-agent development for complex features:
@@ -239,10 +258,14 @@ When creating planning documents:
 
 ## Common Commands Reference
 ```bash
-# Quick development cycle
-npm run dev              # Start development
+# Quick development cycle (RECOMMENDED)
+./scripts/check-dev-server.sh    # Check server status
+./scripts/start-dev-server.sh    # Start development safely
 npm run lint            # Check code quality
 npm run build           # Test production build
+
+# Alternative development (may timeout)
+npm run dev              # Start development directly
 
 # Debugging
 npm run preview         # Test production build locally
