@@ -1,13 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Box, Text, Card, Stack, Group, Badge, ActionIcon, Tooltip } from '@mantine/core'
+import { Box, Text, Card, Stack, Group, Badge, ActionIcon, Tooltip, useComputedColorScheme } from '@mantine/core'
 import { IconAccessible } from '@tabler/icons-react'
 import { 
   getAttendeeColor, 
   getAttendeeColorWithPattern, 
   checkContrast, 
-  BLUE_SCHEME, 
+  BLUE_SCHEME,
+  getThemeAwareScheme,
+  validateAllSchemes,
   validateColorScheme,
-  type ColorResult 
+  type ColorResult,
+  type ColorScheme
 } from '../../utils/colorSystem'
 
 interface EventResponse {
@@ -71,9 +74,9 @@ const getAvailabilityCountWithPreview = (
 const colorCache = new Map<string, ColorResult & { disabled: boolean }>()
 
 // Get comprehensive color information using the colorSystem utilities
-const getTimeSlotColors = (count: number, maxCount: number, disabled: boolean, isSelected: boolean, usePatterns: boolean = false): ColorResult & { disabled: boolean } => {
-  // Create cache key for memoization
-  const cacheKey = `${count}-${maxCount}-${disabled}-${isSelected}-${usePatterns}`
+const getTimeSlotColors = (count: number, maxCount: number, disabled: boolean, isSelected: boolean, usePatterns: boolean = false, colorScheme: ColorScheme = BLUE_SCHEME): ColorResult & { disabled: boolean } => {
+  // Create cache key for memoization including scheme name
+  const cacheKey = `${count}-${maxCount}-${disabled}-${isSelected}-${usePatterns}-${colorScheme.name}`
   
   // Return cached result if available
   if (colorCache.has(cacheKey)) {
@@ -84,17 +87,17 @@ const getTimeSlotColors = (count: number, maxCount: number, disabled: boolean, i
   
   if (disabled) {
     result = {
-      backgroundColor: '#f1f3f4',
-      textColor: '#9ca3af',
-      borderColor: '#e5e7eb',
+      backgroundColor: 'var(--mantine-color-gray-1)',
+      textColor: 'var(--mantine-color-gray-6)',
+      borderColor: 'var(--mantine-color-gray-4)',
       contrastRatio: 4.5, // Meets WCAG AA
       disabled: true
     }
   } else {
     // Use the colorSystem utility with pattern support for colorblind accessibility
     const colorResult = usePatterns 
-      ? getAttendeeColorWithPattern(count, maxCount, BLUE_SCHEME, isSelected, true)
-      : getAttendeeColor(count, maxCount, BLUE_SCHEME, isSelected)
+      ? getAttendeeColorWithPattern(count, maxCount, colorScheme, isSelected, true)
+      : getAttendeeColor(count, maxCount, colorScheme, isSelected)
     
     result = { ...colorResult, disabled: false }
   }
@@ -120,19 +123,30 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
   const [useColorblindMode, setUseColorblindMode] = useState(colorblindFriendly)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Theme detection for color scheme selection
+  const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: false })
+  const isDarkTheme = computedColorScheme === 'dark'
+  
+  // Get theme-appropriate color scheme
+  const currentColorScheme: ColorScheme = getThemeAwareScheme(isDarkTheme)
+
   const maxAttendees = eventData.responses.length + 1 // Include potential user in max count for color scaling
 
-  // Validate color scheme accessibility on component mount
+  // Validate color scheme accessibility on component mount and theme change
   useEffect(() => {
-    const isSchemeValid = validateColorScheme(BLUE_SCHEME)
-    if (!isSchemeValid) {
-      setAccessibilityWarnings(prev => [...prev, 'Color scheme may not meet WCAG AA standards'])
+    // Validate all color schemes and log results
+    const schemeValidation = validateAllSchemes()
+    console.log('Color scheme validation results:', schemeValidation)
+    
+    const isCurrentSchemeValid = validateColorScheme(currentColorScheme)
+    if (!isCurrentSchemeValid) {
+      setAccessibilityWarnings(prev => [...prev, `${currentColorScheme.name} color scheme may not meet WCAG AA standards`])
     }
     
-    // Test contrast ratios for various attendee counts
+    // Test contrast ratios for various attendee counts with current scheme
     const warnings: string[] = []
     for (let i = 0; i <= maxAttendees; i++) {
-      const colorInfo = getTimeSlotColors(i, maxAttendees, false, false)
+      const colorInfo = getTimeSlotColors(i, maxAttendees, false, false, useColorblindMode, currentColorScheme)
       const contrast = checkContrast(colorInfo.backgroundColor, colorInfo.textColor)
       if (!contrast.passesAA) {
         warnings.push(`Low contrast for ${i} attendees: ${contrast.ratio.toFixed(1)}:1 (needs 4.5:1)`)
@@ -141,9 +155,9 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
     
     if (warnings.length > 0) {
       setAccessibilityWarnings(warnings)
-      console.warn('Accessibility warnings:', warnings)
+      console.warn(`Accessibility warnings for ${currentColorScheme.name} scheme:`, warnings)
     }
-  }, [maxAttendees])
+  }, [maxAttendees, currentColorScheme, useColorblindMode])
 
   // Handle responsive design with mobile-first breakpoints
   useEffect(() => {
@@ -240,7 +254,12 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
       <Stack gap={isMobile ? "sm" : "md"}>
         <Group justify="space-between" wrap={isMobile ? "wrap" : "nowrap"}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <Text size={isMobile ? "md" : "lg"} fw={600} c="blue">Enhanced Timeline Layout</Text>
+            <Group gap="xs" align="center">
+              <Text size={isMobile ? "md" : "lg"} fw={600} c="blue">Enhanced Timeline Layout</Text>
+              <Badge size="xs" variant="light" color={isDarkTheme ? "red" : "blue"}>
+                {currentColorScheme.name}
+              </Badge>
+            </Group>
             <Text size={isMobile ? "xs" : "sm"} c="dimmed" style={{ wordBreak: 'break-word' }}>
               {isMobile ? "Tap squares to toggle time slots" : "Click squares or drag to select/deselect multiple time slots"}
             </Text>
@@ -295,7 +314,7 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                     ? 'repeat(auto-fit, minmax(56px, 1fr))' // Optimized for mobile touch
                     : 'repeat(auto-fit, minmax(80px, 1fr))',
                   gap: isMobile ? '2px' : '3px', // Better spacing for touch
-                  backgroundColor: '#e5e7eb',
+                  backgroundColor: 'var(--mantine-color-default-hover)',
                   padding: isMobile ? '4px' : '6px', // More padding for mobile
                   borderRadius: isMobile ? '6px' : '8px',
                   overflow: 'hidden',
@@ -319,7 +338,7 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                     isSelected
                   )
                   
-                  const colorInfo = getTimeSlotColors(previewCount, maxAttendees, isDisabled, isSelected, useColorblindMode)
+                  const colorInfo = getTimeSlotColors(previewCount, maxAttendees, isDisabled, isSelected, useColorblindMode, currentColorScheme)
                   const backgroundColor = colorInfo.backgroundColor
                   const textColor = colorInfo.textColor
 
@@ -482,7 +501,7 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
           <Group gap={isMobile ? "xs" : "sm"} wrap="wrap" style={{ justifyContent: isMobile ? 'center' : 'flex-start' }}>
             {/* Create legend using the actual color system */}
             {[0, 1, 2, 3, 4, 5].map(count => {
-              const colorInfo = getTimeSlotColors(count, maxAttendees, false, false, useColorblindMode)
+              const colorInfo = getTimeSlotColors(count, maxAttendees, false, false, useColorblindMode, currentColorScheme)
               const actualMaxResponses = eventData.responses.length
               const label = count === 0 ? 'None (0)' : 
                           count === 1 ? `Few (1)${count === 1 && actualMaxResponses >= 1 ? ' or You' : ''}` :
@@ -532,8 +551,8 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                 style={{ 
                   width: isMobile ? 18 : 16, 
                   height: isMobile ? 18 : 16, 
-                  backgroundColor: '#f1f3f4',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'var(--mantine-color-gray-1)',
+                  border: '1px solid var(--mantine-color-gray-4)',
                   borderRadius: isMobile ? 4 : 3,
                   opacity: 0.6,
                   flexShrink: 0

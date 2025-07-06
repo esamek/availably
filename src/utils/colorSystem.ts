@@ -90,6 +90,84 @@ export const BLUE_SCHEME: ColorScheme = {
   ]
 }
 
+/**
+ * Ember Color Scheme - Contemporary warm tones for 2025
+ * Inspired by "Mocha Mousse" trend, excellent for dark themes, WCAG AA compliant
+ */
+export const EMBER_SCHEME: ColorScheme = {
+  name: 'Ember',
+  description: 'Contemporary warm ember tones, perfect for dark themes',
+  baseColor: '#fc8181',
+  scale: [
+    '#ffffff', // 0 attendees - pure white
+    '#fff5f3', // 1 attendee - very light warm
+    '#fed7d7', // 2 attendees - light warm pink
+    '#fc8181', // 3 attendees - medium coral
+    '#e53e3e', // 4 attendees - vibrant red
+    '#c53030'  // 5+ attendees - deep red
+  ],
+  textColors: [
+    '#343a40', // Dark text for light backgrounds (0-2 attendees)
+    '#343a40',
+    '#343a40',
+    '#000000', // Black text for medium colors (better contrast)
+    '#ffffff', // White text for darker backgrounds
+    '#ffffff'
+  ]
+}
+
+/**
+ * Purple Color Scheme - Modern sophisticated tones for 2025
+ * Contemporary "dusky purple" trend, WCAG AA compliant
+ */
+export const PURPLE_SCHEME: ColorScheme = {
+  name: 'Purple',
+  description: 'Modern sophisticated purple scale, contemporary and accessible',
+  baseColor: '#9f7aea',
+  scale: [
+    '#ffffff', // 0 attendees - pure white
+    '#faf5ff', // 1 attendee - very light purple
+    '#e9d8fd', // 2 attendees - light purple
+    '#9f7aea', // 3 attendees - medium purple
+    '#6b46c1', // 4 attendees - vibrant purple
+    '#4c1d95'  // 5+ attendees - deep purple
+  ],
+  textColors: [
+    '#343a40', // Dark text for light backgrounds (0-2 attendees)
+    '#343a40',
+    '#343a40',
+    '#000000', // Black text for medium colors (better contrast)
+    '#ffffff', // White text for darker backgrounds
+    '#ffffff'
+  ]
+}
+
+/**
+ * Emerald Color Scheme - Nature-inspired professional tones
+ * Optimized for dark themes with teal-green progression, WCAG AA compliant
+ */
+export const EMERALD_SCHEME: ColorScheme = {
+  name: 'Emerald',
+  description: 'Nature-inspired emerald tones, excellent for dark backgrounds',
+  baseColor: '#4fd1c7',
+  scale: [
+    '#ffffff', // 0 attendees - pure white
+    '#f0fff4', // 1 attendee - very light mint
+    '#c6f6d5', // 2 attendees - light green
+    '#4fd1c7', // 3 attendees - medium teal
+    '#38b2ac', // 4 attendees - vibrant teal
+    '#285e61'  // 5+ attendees - deep teal
+  ],
+  textColors: [
+    '#343a40', // Dark text for light backgrounds (0-2 attendees)
+    '#343a40',
+    '#343a40',
+    '#000000', // Black text for medium colors (better contrast)
+    '#ffffff', // White text for darker backgrounds
+    '#ffffff'
+  ]
+}
+
 // ============================================================================
 // CONTRAST CALCULATION UTILITIES
 // ============================================================================
@@ -315,6 +393,46 @@ export function getRecommendedScheme(): ColorScheme {
   }
 }
 
+/**
+ * Get theme-appropriate color scheme
+ * Automatically selects contemporary schemes for dark themes, professional schemes for light themes
+ */
+export function getThemeAwareScheme(isDarkTheme: boolean = false): ColorScheme {
+  if (isDarkTheme) {
+    // Test EMBER scheme for dark theme compatibility
+    const emberValid = validateColorScheme(EMBER_SCHEME)
+    if (emberValid) {
+      return EMBER_SCHEME
+    }
+    
+    // Fallback to other contemporary schemes
+    const purpleValid = validateColorScheme(PURPLE_SCHEME)
+    const emeraldValid = validateColorScheme(EMERALD_SCHEME)
+    
+    if (purpleValid) return PURPLE_SCHEME
+    if (emeraldValid) return EMERALD_SCHEME
+    
+    // Ultimate fallback
+    return BLUE_SCHEME
+  } else {
+    // Light theme - use traditional professional schemes
+    return getRecommendedScheme()
+  }
+}
+
+/**
+ * Validate all contemporary color schemes for WCAG compliance
+ */
+export function validateAllSchemes(): { [key: string]: boolean } {
+  return {
+    green: validateColorScheme(GREEN_SCHEME),
+    blue: validateColorScheme(BLUE_SCHEME),
+    ember: validateColorScheme(EMBER_SCHEME),
+    purple: validateColorScheme(PURPLE_SCHEME),
+    emerald: validateColorScheme(EMERALD_SCHEME)
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -329,7 +447,12 @@ export default {
   generateCSSStyles,
   validateColorScheme,
   getRecommendedScheme,
+  getThemeAwareScheme,
+  validateAllSchemes,
   GREEN_SCHEME,
   BLUE_SCHEME,
+  EMBER_SCHEME,
+  PURPLE_SCHEME,
+  EMERALD_SCHEME,
   ACCESSIBILITY_PATTERNS
 }

@@ -1,6 +1,9 @@
 export interface EventResponse {
   name: string
   availability: string[]
+  isPreview?: boolean
+  isTemporary?: boolean
+  timestamp?: Date
 }
 
 export interface EventData {

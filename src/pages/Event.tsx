@@ -1,9 +1,15 @@
 import { Container, Title, Text, Card, Stack, Group, Button, Badge, Grid, TextInput } from '@mantine/core'
 import { useParams, Link } from 'react-router-dom'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+// import { useDebouncedCallback } from '@mantine/hooks'
 import { EnhancedTimelineLayout } from '../components/availability/EnhancedTimelineLayout'
-import type { EventData } from '../types/event'
-import { findOptimalTimeRanges, formatTimeRange } from '../utils/timeRangeAnalysis'
+import type { EventData, EventResponse } from '../types/event'
+import { 
+  findOptimalTimeRanges, 
+  findOptimalTimeRangesWithPreview,
+  formatTimeRangeWithPreview 
+} from '../utils/timeRangeAnalysis'
+import { generatePreviewResponse, formatPreviewName } from '../utils/previewHelpers'
 
 const SAMPLE_EVENT: EventData = {
   name: "Team Project Sync - All Day Scheduling",
@@ -178,18 +184,51 @@ export default function Event() {
   const [participantName, setParticipantName] = useState('')
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
   const [hasSubmitted, setHasSubmitted] = useState(false)
+  const [previewMode, setPreviewMode] = useState(true)
 
   const isSampleEvent = eventId?.includes('sample')
   const event = isSampleEvent ? SAMPLE_EVENT : null
 
-  // Calculate optimal time ranges using the algorithm - moved before early return
+  // Generate preview response when user has selections
+  const previewResponse = useMemo(() => {
+    if (!previewMode || selectedSlots.length === 0 || hasSubmitted) {
+      return null
+    }
+    return generatePreviewResponse(participantName || 'You', selectedSlots)
+  }, [participantName, selectedSlots, previewMode, hasSubmitted])
+
+  // Create responses array including preview
+  const responsesWithPreview = useMemo(() => {
+    if (!event) return []
+    return previewResponse ? [...event.responses, previewResponse] : event.responses
+  }, [event, previewResponse])
+
+  // Calculate optimal time ranges including preview - debounced for performance
+  const calculateOptimalRanges = useCallback((
+    eventData: EventData | null, 
+    preview: EventResponse | null
+  ) => {
+    if (!eventData) return []
+    
+    if (preview) {
+      return findOptimalTimeRangesWithPreview(eventData, [preview], 5)
+    } else {
+      return findOptimalTimeRanges(eventData, 5)
+    }
+  }, [])
+
+  // Debounced calculation to prevent excessive recalculation during drag (for future use)
+  // const debouncedCalculateRanges = useDebouncedCallback(calculateOptimalRanges, 250)
+
+  // Calculate optimal time ranges with real-time preview
   const optimalTimeRanges = useMemo(() => {
-    return event ? findOptimalTimeRanges(event, 5) : []
-  }, [event])
+    return calculateOptimalRanges(event, previewResponse)
+  }, [event, previewResponse, calculateOptimalRanges])
 
   const handleSubmit = () => {
     if (!participantName.trim() || selectedSlots.length === 0) return
     setHasSubmitted(true)
+    setPreviewMode(false) // Disable preview mode after submission
     alert(`Thanks ${participantName}! Your availability has been recorded.`)
   }
 
@@ -275,9 +314,17 @@ export default function Event() {
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Card shadow="sm" padding="lg" radius="md" withBorder>
               <Stack gap="md">
-                <Title order={3} size="h4">Best Times</Title>
+                <Group justify="space-between" align="center">
+                  <Title order={3} size="h4">Best Times</Title>
+                  {previewResponse && (
+                    <Badge size="xs" variant="light" color="orange">
+                      Live Preview
+                    </Badge>
+                  )}
+                </Group>
                 <Text size="sm" c="dimmed">
                   Time ranges when most people are available
+                  {previewResponse && " (including your current selection)"}
                 </Text>
                 {optimalTimeRanges.length > 0 ? (
                   <Stack gap="xs">
@@ -285,17 +332,22 @@ export default function Event() {
                       <Badge 
                         key={`${range.date}-${range.startTime}`}
                         variant="light" 
-                        color={index === 0 ? "green" : index === 1 ? "blue" : "orange"}
+                        color={
+                          range.hasPreview ? "orange" : 
+                          index === 0 ? "green" : 
+                          index === 1 ? "blue" : "gray"
+                        }
                         size="lg"
                         style={{ 
                           whiteSpace: 'normal', 
                           height: 'auto', 
                           padding: '8px 12px',
                           fontSize: '0.75rem',
-                          lineHeight: 1.4
+                          lineHeight: 1.4,
+                          opacity: range.hasPreview ? 1 : 0.8
                         }}
                       >
-                        {formatTimeRange(range)}
+                        {formatTimeRangeWithPreview(range)}
                       </Badge>
                     ))}
                   </Stack>
@@ -310,19 +362,32 @@ export default function Event() {
             <Card shadow="sm" padding="lg" radius="md" withBorder mt="md">
               <Stack gap="md">
                 <Title order={3} size="h4">Current Responses</Title>
-                {event.responses.map(response => (
-                  <div key={response.name}>
-                    <Text size="sm" fw={500}>{response.name}</Text>
+                {responsesWithPreview.map(response => (
+                  <div key={response.name} style={{ 
+                    opacity: response.isPreview ? 0.9 : 1,
+                    borderLeft: response.isPreview ? '3px solid var(--mantine-color-orange-4)' : 'none',
+                    paddingLeft: response.isPreview ? '8px' : '0'
+                  }}>
+                    <Group gap="xs" align="center">
+                      <Text size="sm" fw={500}>
+                        {formatPreviewName(response)}
+                      </Text>
+                      {response.isPreview && (
+                        <Badge size="xs" variant="outline" color="orange">
+                          Live
+                        </Badge>
+                      )}
+                    </Group>
                     <Text size="xs" c="dimmed">
-                      {response.availability.length} time slots selected
+                      {response.availability.length} time slot{response.availability.length !== 1 ? 's' : ''} selected
                     </Text>
                   </div>
                 ))}
-                {hasSubmitted && (
+                {hasSubmitted && !previewResponse && (
                   <div>
                     <Text size="sm" fw={500}>{participantName}</Text>
                     <Text size="xs" c="dimmed">
-                      {selectedSlots.length} time slots selected
+                      {selectedSlots.length} time slot{selectedSlots.length !== 1 ? 's' : ''} selected
                     </Text>
                   </div>
                 )}
