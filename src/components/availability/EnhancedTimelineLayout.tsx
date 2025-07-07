@@ -495,16 +495,6 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                 </Group>
               )}
               
-              {/* Time range summary */}
-              <Group justify="space-between" mt="xs">
-                <Text size="xs" c="dimmed">
-                  {FULL_DAY_HOURS[0]} - {FULL_DAY_HOURS[Math.min(visibleTimeCount - 1, FULL_DAY_HOURS.length - 1)]}
-                  {visibleTimeCount < FULL_DAY_HOURS.length && ` (${visibleTimeCount} of ${FULL_DAY_HOURS.length})`}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  30-minute intervals
-                </Text>
-              </Group>
             </Box>
           ))}
         </div>

@@ -309,7 +309,7 @@ export default function Event() {
                     ? "Enter your name to continue"
                     : selectedSlots.length === 0 
                       ? "Select time slots to submit"
-                      : `Submit Availability (${selectedSlots.length} slot${selectedSlots.length !== 1 ? 's' : ''} selected)`
+                      : "Submit Availability"
                   }
                 </Button>
               </Card>
@@ -323,7 +323,20 @@ export default function Event() {
 
             <Card shadow="sm" padding="lg" radius="md" withBorder mt="md">
               <Stack gap="md">
-                <Title order={3} size="h4">Current Responses</Title>
+                <Group justify="space-between" align="center">
+                  <Title order={3} size="h4">Current Responses</Title>
+                  {selectedSlots.length > 0 && !hasSubmitted && (
+                    <Text 
+                      size="sm" 
+                      c="blue" 
+                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => setSelectedSlots([])}
+                      aria-label="Clear all selected time slots"
+                    >
+                      Clear my selections
+                    </Text>
+                  )}
+                </Group>
                 {responsesWithPreview.map(response => (
                   <div key={response.name} style={{ 
                     opacity: response.isPreview ? 0.9 : 1,
