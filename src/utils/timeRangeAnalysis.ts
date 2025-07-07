@@ -1,4 +1,4 @@
-import type { EventData } from '../types/event'
+import type { EventData, EventResponse } from '../types/event'
 
 export interface TimeSlotAnalysis {
   dateTime: string
@@ -16,6 +16,8 @@ export interface OptimalTimeRange {
   attendeeCount: number
   attendees: string[]
   duration: number // in minutes
+  hasPreview?: boolean
+  previewDelta?: number // Change in attendance due to preview
 }
 
 /**
@@ -246,4 +248,137 @@ export function findOptimalTimeRanges(eventData: EventData, maxRanges: number = 
  */
 export function formatTimeRange(range: OptimalTimeRange): string {
   return `${range.dayLabel}: ${range.startTime}–${range.endTime} (${range.attendeeCount} people)`
+}
+
+// ============================================================================
+// PREVIEW-AWARE ANALYSIS FUNCTIONS
+// ============================================================================
+
+/**
+ * Analyzes time slots including preview responses
+ */
+export function analyzeTimeSlotsWithPreview(
+  eventData: EventData, 
+  previewResponses: EventResponse[] = []
+): TimeSlotAnalysis[] {
+  const slotAnalysis = new Map<string, TimeSlotAnalysis>()
+  
+  // Initialize all possible slots with zero attendance
+  for (const dateObj of eventData.possibleDates) {
+    for (const time of eventData.possibleTimes) {
+      const dateTime = `${dateObj.date}-${time}`
+      slotAnalysis.set(dateTime, {
+        dateTime,
+        date: dateObj.date,
+        time,
+        attendeeCount: 0,
+        attendees: []
+      })
+    }
+  }
+  
+  // Count attendance from both submitted and preview responses
+  const allResponses = [...eventData.responses, ...previewResponses]
+  
+  for (const response of allResponses) {
+    for (const availableSlot of response.availability) {
+      const existing = slotAnalysis.get(availableSlot)
+      if (existing) {
+        existing.attendeeCount++
+        existing.attendees.push(response.name)
+      }
+    }
+  }
+  
+  return Array.from(slotAnalysis.values())
+}
+
+/**
+ * Find optimal time ranges including preview data
+ */
+export function findOptimalTimeRangesWithPreview(
+  eventData: EventData, 
+  previewResponses: EventResponse[] = [],
+  maxRanges: number = 5
+): OptimalTimeRange[] {
+  // Calculate original ranges without preview
+  const originalSlots = analyzeTimeSlots(eventData)
+  const originalThreshold = calculateAttendanceThreshold(originalSlots)
+  const originalRanges = groupConsecutiveSlots(originalSlots, originalThreshold)
+  
+  // Calculate ranges with preview
+  const previewSlots = analyzeTimeSlotsWithPreview(eventData, previewResponses)
+  const previewThreshold = calculateAttendanceThreshold(previewSlots)
+  const previewRanges = groupConsecutiveSlots(previewSlots, previewThreshold)
+  
+  // Add preview metadata to ranges
+  const enhancedRanges = previewRanges.map(previewRange => {
+    const originalRange = originalRanges.find(orig => 
+      orig.date === previewRange.date && 
+      orig.startTime === previewRange.startTime &&
+      orig.endTime === previewRange.endTime
+    )
+    
+    const previewDelta = originalRange 
+      ? previewRange.attendeeCount - originalRange.attendeeCount
+      : previewRange.attendeeCount
+    
+    return {
+      ...previewRange,
+      hasPreview: previewResponses.length > 0 && previewDelta !== 0,
+      previewDelta
+    }
+  })
+  
+  // Sort by attendance count (descending) and then by duration (descending)
+  enhancedRanges.sort((a, b) => {
+    if (b.attendeeCount !== a.attendeeCount) {
+      return b.attendeeCount - a.attendeeCount
+    }
+    return b.duration - a.duration
+  })
+  
+  return enhancedRanges.slice(0, maxRanges)
+}
+
+/**
+ * Formats a time range with preview indicator for display
+ */
+export function formatTimeRangeWithPreview(range: OptimalTimeRange): string {
+  const baseText = `${range.dayLabel}: ${range.startTime}–${range.endTime} (${range.attendeeCount} people)`
+  
+  if (range.hasPreview && range.previewDelta !== undefined) {
+    const deltaText = range.previewDelta > 0 
+      ? ` ↑ +${range.previewDelta}` 
+      : ` ↓ ${range.previewDelta}`
+    return `${baseText}${deltaText}`
+  }
+  
+  return baseText
+}
+
+/**
+ * Create a combined response array including preview data
+ */
+export function createPreviewEventData(
+  eventData: EventData,
+  previewSelections: string[],
+  userName: string
+): EventData {
+  if (previewSelections.length === 0) {
+    return eventData
+  }
+  
+  const previewResponse: EventResponse = {
+    name: userName.trim() || 'You',
+    availability: previewSelections,
+    isPreview: true,
+    isTemporary: true,
+    timestamp: new Date()
+  }
+  
+  return {
+    ...eventData,
+    responses: [...eventData.responses, previewResponse]
+  }
 }

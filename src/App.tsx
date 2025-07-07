@@ -6,6 +6,7 @@ import Create from './pages/Create'
 import Event from './pages/Event'
 import About from './pages/About'
 import EventLayoutComparison from './pages/EventLayoutComparison'
+import { ThemeToggle } from './components/ui/ThemeToggle'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
               <Anchor component={Link} to="/about" size="sm">
                 About
               </Anchor>
+              <ThemeToggle />
             </Group>
           </Group>
         </Container>

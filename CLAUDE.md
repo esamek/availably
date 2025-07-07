@@ -233,7 +233,9 @@ All planning documents are stored in `.claude/planning/` directory for better or
     │   ├── 2025-07-02-implementation-plan.md
     │   ├── 2025-07-02-ui-feedback-session.md
     │   └── 2025-07-02-ui-improvements-plan.md
-    ├── [branch-name]/                 # Branch-specific planning
+    ├── pr-001-[branch-name]/          # PR-specific planning (sorted chronologically)
+    │   └── YYYY-MM-DD-[meaningful-description].md
+    ├── pr-002-[branch-name]/          # Next PR planning
     │   └── YYYY-MM-DD-[meaningful-description].md
     └── main/                          # Main branch planning
         └── YYYY-MM-DD-[meaningful-description].md
@@ -247,11 +249,18 @@ Planning documents should follow this format:
 
 ### Guidelines for Future Agents
 When creating planning documents:
-1. Always place them in `.claude/planning/[current-branch]/`
-2. Use the current date and a meaningful description
+1. **For new work**: Always place them in `.claude/planning/pr-XXX-[branch-name]/`
+   - Use PR number format: `pr-001-`, `pr-002-`, etc. (with leading zeros)
+   - Include the original branch name after the PR number
+   - This organizes folders chronologically while preserving context
+2. Use the current date and a meaningful description for document names
 3. Keep descriptions concise but descriptive (3-5 words)
 4. Focus on what the plan addresses, not generic terms
-5. Examples of good names:
+5. Examples of good folder names:
+   - `pr-001-update-claude-docs/`
+   - `pr-002-debug-dev-server-timeout/`
+   - `pr-003-fix-dev-server-startup/`
+6. Examples of good document names:
    - `2025-07-03-auth-implementation-plan.md`
    - `2025-07-03-mobile-responsive-fixes.md`
    - `2025-07-03-performance-optimization-strategy.md`
