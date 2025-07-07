@@ -121,6 +121,7 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
   const [isMobile, setIsMobile] = useState(false)
   const [, setAccessibilityWarnings] = useState<string[]>([])
   const [useColorblindMode, setUseColorblindMode] = useState(colorblindFriendly)
+  const [visibleTimeCount, setVisibleTimeCount] = useState(12) // Show 12 times initially
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Theme detection for color scheme selection
@@ -324,7 +325,7 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                   backfaceVisibility: 'hidden'
                 }}
               >
-                {FULL_DAY_HOURS.map(time => {
+                {FULL_DAY_HOURS.slice(0, visibleTimeCount).map(time => {
                   const dateTime = `${date.date}-${time}`
                   const isInScope = isTimeInEventScope(time, eventData.possibleTimes)
                   const isSelected = selectedSlots.includes(dateTime)
@@ -342,9 +343,19 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                   const backgroundColor = colorInfo.backgroundColor
                   const textColor = colorInfo.textColor
 
+                  const tooltipContent = previewCount > 0 
+                    ? `${previewCount} people available${includesUser ? ' (including you)' : ''}`
+                    : 'No one available for this time'
+
                   return (
-                    <Box
+                    <Tooltip
                       key={dateTime}
+                      label={tooltipContent}
+                      position="top"
+                      withArrow
+                      transitionProps={{ duration: 150 }}
+                    >
+                      <Box
                       data-datetime={dateTime}
                       data-disabled={isDisabled}
                       onMouseDown={() => handleMouseDown(dateTime, isDisabled)}
@@ -414,38 +425,14 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                           lineHeight: isMobile ? 0.85 : 1,
                           textAlign: 'center',
                           whiteSpace: isMobile ? 'pre-line' : 'nowrap',
-                          fontSize: isMobile ? '9px' : '10px', // Slightly larger for mobile readability
+                          fontSize: '12px', // Larger font for better readability
                           textShadow: previewCount > 0 && !isSelected ? '0 0 2px rgba(255,255,255,0.5)' : 'none' // Better contrast
                         }}
                       >
                         {isMobile ? time.replace(' ', '\n') : time}
                       </div>
                       
-                      {/* Attendee count with real-time preview - mobile optimized */}
-                      {previewCount > 0 && (
-                        <Text
-                          size="xs"
-                          style={{
-                            position: 'absolute',
-                            bottom: isMobile ? '2px' : '4px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            color: textColor,
-                            fontWeight: 700,
-                            lineHeight: 1,
-                            fontSize: isMobile ? '11px' : '12px', // Better mobile visibility
-                            backgroundColor: includesUser && isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0,0,0,0.15)',
-                            borderRadius: isMobile ? '6px' : '8px',
-                            padding: isMobile ? '1px 3px' : '1px 4px',
-                            minWidth: isMobile ? '14px' : '16px',
-                            textAlign: 'center',
-                            textShadow: previewCount > 0 && !isSelected ? '0 0 2px rgba(255,255,255,0.3)' : 'none',
-                            border: includesUser && isSelected ? '1px solid #10b981' : 'none'
-                          }}
-                        >
-                          {previewCount}{includesUser && isSelected ? '*' : ''}
-                        </Text>
-                      )}
+                      {/* Attendee count moved to tooltip - cleaner interface */}
                       
                       {/* Preview indicator for user's selection */}
                       {includesUser && isSelected && (
@@ -464,14 +451,55 @@ export const EnhancedTimelineLayout: React.FC<EnhancedTimelineLayoutProps> = ({
                         />
                       )}
                     </Box>
+                    </Tooltip>
                   )
                 })}
               </div>
               
+              {/* Show More Times button */}
+              {visibleTimeCount < FULL_DAY_HOURS.length && (
+                <Group justify="center" mt="sm">
+                  <Text
+                    size="sm"
+                    c="blue"
+                    style={{ 
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                    onClick={() => {
+                      const increment = 12
+                      setVisibleTimeCount(prev => 
+                        Math.min(prev + increment, FULL_DAY_HOURS.length)
+                      )
+                    }}
+                  >
+                    Show More Times ({Math.min(12, FULL_DAY_HOURS.length - visibleTimeCount)} more)
+                  </Text>
+                </Group>
+              )}
+              
+              {/* Show Fewer button when expanded */}
+              {visibleTimeCount > 12 && (
+                <Group justify="center" mt="xs">
+                  <Text
+                    size="sm"
+                    c="gray"
+                    style={{ 
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                    onClick={() => setVisibleTimeCount(12)}
+                  >
+                    Show Fewer Times
+                  </Text>
+                </Group>
+              )}
+              
               {/* Time range summary */}
               <Group justify="space-between" mt="xs">
                 <Text size="xs" c="dimmed">
-                  {FULL_DAY_HOURS[0]} - {FULL_DAY_HOURS[FULL_DAY_HOURS.length - 1]}
+                  {FULL_DAY_HOURS[0]} - {FULL_DAY_HOURS[Math.min(visibleTimeCount - 1, FULL_DAY_HOURS.length - 1)]}
+                  {visibleTimeCount < FULL_DAY_HOURS.length && ` (${visibleTimeCount} of ${FULL_DAY_HOURS.length})`}
                 </Text>
                 <Text size="xs" c="dimmed">
                   30-minute intervals

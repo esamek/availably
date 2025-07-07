@@ -438,6 +438,68 @@ export function validateAllSchemes(): { [key: string]: boolean } {
 // ============================================================================
 
 
+// ============================================================================
+// BEST TIMES COLOR SCHEMES
+// ============================================================================
+
+/**
+ * Green color schemes for Best Times section - accessible and theme-aware
+ */
+export const BEST_TIMES_GREEN_LIGHT = {
+  backgrounds: ['#dcfce7', '#bbf7d0', '#86efac'], // green-100, green-200, green-300
+  text: '#15803d',        // green-700 - high contrast text
+  accent: '#16a34a',      // green-600 - borders and highlights
+  preview: '#059669'      // emerald-600 - preview indicator
+}
+
+export const BEST_TIMES_GREEN_DARK = {
+  backgrounds: ['#052e16', '#14532d', '#166534'], // green-950, green-900, green-800
+  text: '#22c55e',        // green-500 - bright text for dark bg
+  accent: '#16a34a',      // green-600 - borders and highlights  
+  preview: '#10b981'      // emerald-500 - preview indicator
+}
+
+/**
+ * Get Best Times color scheme based on theme and index
+ */
+export function getBestTimeColors(
+  index: number, 
+  isDarkTheme: boolean = false, 
+  hasPreview: boolean = false
+): {
+  backgroundColor: string
+  color: string
+  borderColor: string
+} {
+  const scheme = isDarkTheme ? BEST_TIMES_GREEN_DARK : BEST_TIMES_GREEN_LIGHT
+  const backgroundIndex = Math.min(index, scheme.backgrounds.length - 1)
+  
+  return {
+    backgroundColor: scheme.backgrounds[backgroundIndex],
+    color: hasPreview ? scheme.preview : scheme.text,
+    borderColor: hasPreview ? scheme.accent : 'transparent'
+  }
+}
+
+/**
+ * Validate Best Times green color schemes for WCAG AA compliance
+ */
+export function validateBestTimesColors(): { light: boolean; dark: boolean } {
+  const lightValid = [
+    checkContrast(BEST_TIMES_GREEN_LIGHT.backgrounds[0], BEST_TIMES_GREEN_LIGHT.text).passesAA,
+    checkContrast(BEST_TIMES_GREEN_LIGHT.backgrounds[1], BEST_TIMES_GREEN_LIGHT.text).passesAA,
+    checkContrast(BEST_TIMES_GREEN_LIGHT.backgrounds[2], BEST_TIMES_GREEN_LIGHT.text).passesAA,
+  ].every(Boolean)
+  
+  const darkValid = [
+    checkContrast(BEST_TIMES_GREEN_DARK.backgrounds[0], BEST_TIMES_GREEN_DARK.text).passesAA,
+    checkContrast(BEST_TIMES_GREEN_DARK.backgrounds[1], BEST_TIMES_GREEN_DARK.text).passesAA,
+    checkContrast(BEST_TIMES_GREEN_DARK.backgrounds[2], BEST_TIMES_GREEN_DARK.text).passesAA,
+  ].every(Boolean)
+  
+  return { light: lightValid, dark: darkValid }
+}
+
 export default {
   getAttendeeColor,
   getOptimalAttendeeColor,
@@ -449,10 +511,14 @@ export default {
   getRecommendedScheme,
   getThemeAwareScheme,
   validateAllSchemes,
+  getBestTimeColors,
+  validateBestTimesColors,
   GREEN_SCHEME,
   BLUE_SCHEME,
   EMBER_SCHEME,
   PURPLE_SCHEME,
   EMERALD_SCHEME,
+  BEST_TIMES_GREEN_LIGHT,
+  BEST_TIMES_GREEN_DARK,
   ACCESSIBILITY_PATTERNS
 }

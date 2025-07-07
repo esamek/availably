@@ -3,11 +3,11 @@ import { useParams, Link } from 'react-router-dom'
 import { useState, useMemo, useCallback } from 'react'
 // import { useDebouncedCallback } from '@mantine/hooks'
 import { EnhancedTimelineLayout } from '../components/availability/EnhancedTimelineLayout'
+import { BestTimesCard } from '../components/BestTimesCard'
 import type { EventData, EventResponse } from '../types/event'
 import { 
   findOptimalTimeRanges, 
-  findOptimalTimeRangesWithPreview,
-  formatTimeRangeWithPreview 
+  findOptimalTimeRangesWithPreview
 } from '../utils/timeRangeAnalysis'
 import { generatePreviewResponse, formatPreviewName } from '../utils/previewHelpers'
 
@@ -286,78 +286,40 @@ export default function Event() {
                   />
                 </div>
 
-                {!hasSubmitted && (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!participantName.trim() || selectedSlots.length === 0}
-                    variant={selectedSlots.length > 0 && participantName.trim() ? "filled" : "outline"}
-                    color={selectedSlots.length > 0 && participantName.trim() ? "blue" : "gray"}
-                    size="md"
-                    fullWidth
-                    style={{
-                      transition: 'all 0.2s ease',
-                      opacity: (!participantName.trim() || selectedSlots.length === 0) ? 0.6 : 1
-                    }}
-                  >
-                    {!participantName.trim() 
-                      ? "Enter your name to continue"
-                      : selectedSlots.length === 0 
-                        ? "Select time slots to submit"
-                        : `Submit Availability (${selectedSlots.length} slot${selectedSlots.length !== 1 ? 's' : ''} selected)`
-                    }
-                  </Button>
-                )}
               </Stack>
             </Card>
           </Grid.Col>
 
           <Grid.Col span={{ base: 12, md: 4 }}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Stack gap="md">
-                <Group justify="space-between" align="center">
-                  <Title order={3} size="h4">Best Times</Title>
-                  {previewResponse && (
-                    <Badge size="xs" variant="light" color="orange">
-                      Live Preview
-                    </Badge>
-                  )}
-                </Group>
-                <Text size="sm" c="dimmed">
-                  Time ranges when most people are available
-                  {previewResponse && " (including your current selection)"}
-                </Text>
-                {optimalTimeRanges.length > 0 ? (
-                  <Stack gap="xs">
-                    {optimalTimeRanges.map((range, index) => (
-                      <Badge 
-                        key={`${range.date}-${range.startTime}`}
-                        variant="light" 
-                        color={
-                          range.hasPreview ? "orange" : 
-                          index === 0 ? "green" : 
-                          index === 1 ? "blue" : "gray"
-                        }
-                        size="lg"
-                        style={{ 
-                          whiteSpace: 'normal', 
-                          height: 'auto', 
-                          padding: '8px 12px',
-                          fontSize: '0.75rem',
-                          lineHeight: 1.4,
-                          opacity: range.hasPreview ? 1 : 0.8
-                        }}
-                      >
-                        {formatTimeRangeWithPreview(range)}
-                      </Badge>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Text size="sm" c="dimmed" style={{ fontStyle: 'italic' }}>
-                    No overlapping availability found. Add more responses to see optimal times.
-                  </Text>
-                )}
-              </Stack>
-            </Card>
+            {!hasSubmitted && (
+              <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!participantName.trim() || selectedSlots.length === 0}
+                  variant={selectedSlots.length > 0 && participantName.trim() ? "filled" : "outline"}
+                  color={selectedSlots.length > 0 && participantName.trim() ? "blue" : "gray"}
+                  size="lg"
+                  fullWidth
+                  style={{
+                    transition: 'all 0.2s ease',
+                    opacity: (!participantName.trim() || selectedSlots.length === 0) ? 0.6 : 1
+                  }}
+                >
+                  {!participantName.trim() 
+                    ? "Enter your name to continue"
+                    : selectedSlots.length === 0 
+                      ? "Select time slots to submit"
+                      : `Submit Availability (${selectedSlots.length} slot${selectedSlots.length !== 1 ? 's' : ''} selected)`
+                  }
+                </Button>
+              </Card>
+            )}
+            
+            <BestTimesCard 
+              ranges={optimalTimeRanges}
+              hasPreview={!!previewResponse}
+              maxVisible={3}
+            />
 
             <Card shadow="sm" padding="lg" radius="md" withBorder mt="md">
               <Stack gap="md">
@@ -374,7 +336,7 @@ export default function Event() {
                       </Text>
                       {response.isPreview && (
                         <Badge size="xs" variant="outline" color="orange">
-                          Live
+                          Preview
                         </Badge>
                       )}
                     </Group>
